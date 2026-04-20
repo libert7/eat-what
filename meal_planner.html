@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>今天吃什么 - 家常菜推荐</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f1eb;
+      --card: #fdfbf7;
+      --text: #3f3a34;
+      --muted: #8a8177;
+      --primary: #6f6255;
+      --primary-soft: #ede7de;
+      --border: #ddd5c8;
+      --ok: #665746;
+      --ok-bg: #eee5d8;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Hiragino Sans GB", "PingFang SC", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      letter-spacing: 0.01em;
+    }
+
+    .container {
+      max-width: 920px;
+      margin: 34px auto;
+      padding: 0 18px 40px;
+    }
+
+    .header {
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 30px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .sub {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: none;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .field label.title {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 9px;
+      color: #4c463f;
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 14px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 14px;
+      color: var(--text);
+      background: #fcfaf6;
+      transition: all 0.15s ease;
+    }
+
+    .chip input { display: none; }
+
+    .chip.active {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    .chip:hover {
+      border-color: #b7ab9b;
+      background: #f3ede4;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.16s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #f9f8f6;
+      border-color: var(--primary);
+    }
+
+    .btn-primary:hover {
+      background: #5f5348;
+      border-color: #5f5348;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #f1ebe2;
+      border-color: #c9beaf;
+    }
+
+    .result-title {
+      margin: 0 0 14px;
+      font-size: 21px;
+      font-weight: 500;
+    }
+
+    .menu-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      background: #fffdf9;
+    }
+
+    .menu-item h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      font-weight: 500;
+    }
+
+    .menu-item p {
+      margin: 4px 0;
+      font-size: 14px;
+    }
+
+    .tips {
+      padding: 12px 13px;
+      border-radius: 8px;
+      background: var(--ok-bg);
+      color: var(--ok);
+      font-size: 14px;
+      border: 1px solid #ded3c4;
+    }
+
+    .manager-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 760px) {
+      .manager-grid { grid-template-columns: 1fr; }
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 10px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fffdf9;
+      color: var(--text);
+      transition: all 0.15s ease;
+    }
+
+    textarea { min-height: 72px; resize: vertical; }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #b8ab9a;
+      box-shadow: 0 0 0 2px rgba(182, 167, 149, 0.2);
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 6px 0 0;
+    }
+
+    .custom-list {
+      margin-top: 12px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      font-size: 14px;
+    }
+
+    .custom-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid #ebe4d8;
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>今天吃什么</h1>
+      <p class="sub">先选类型，再按“蛋白质 + 蔬菜 + 当季水果”自动推荐家常菜。</p>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div class="field" data-field="taste">
+          <label class="title">1. 口味倾向</label>
+          <div class="options" id="tasteOptions"></div>
+        </div>
+
+        <div class="field" data-field="staple">
+          <label class="title">2. 主食偏好</label>
+          <div class="options" id="stapleOptions"></div>
+        </div>
+
+        <div class="field" data-field="protein">
+          <label class="title">3. 蛋白质偏好</label>
+          <div class="options" id="proteinOptions"></div>
+        </div>
+
+        <div class="field" data-field="time">
+          <label class="title">4. 做饭时长</label>
+          <div class="options" id="timeOptions"></div>
+        </div>
+
+        <div class="field" data-field="spicy">
+          <label class="title">5. 辣度</label>
+          <div class="options" id="spicyOptions"></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary" id="generateBtn">生成今日菜单</button>
+        <button class="btn-primary" id="generateWeekBtn">本周不重复推荐</button>
+        <button class="btn-secondary" id="resetBtn">重置选择</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="result-title">维护你的菜谱（页面内直接添加）</h2>
+      <div class="manager-grid">
+        <input id="dishName" placeholder="菜名（例：蒜香虾仁意面）">
+        <select id="dishProtein"></select>
+        <select id="dishStaple"></select>
+        <select id="dishTaste"></select>
+        <select id="dishSpicy"></select>
+        <input id="dishTime" type="number" min="5" max="120" value="20" placeholder="做饭时长（分钟）">
+      </div>
+      <div class="manager-grid" style="margin-top:10px;">
+        <input id="dishVeggie" placeholder="蔬菜搭配（例：西兰花+胡萝卜）">
+        <input id="dishGarnish" placeholder="配菜提醒（例：葱姜蒜、生抽）">
+      </div>
+      <div style="margin-top:10px;">
+        <textarea id="dishMethod" placeholder="简做法（例：虾仁快炒后和面拌匀，最后放蒜末）"></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn-primary" id="addDishBtn">添加到我的菜谱</button>
+      </div>
+      <p class="small">新增菜谱会自动保存到本地浏览器，下次打开还能用。</p>
+      <div class="custom-list" id="customList"></div>
+    </div>
+
+    <div class="card hidden" id="resultCard">
+      <h2 class="result-title">今日推荐（3选1）</h2>
+      <div id="resultList"></div>
+      <div class="tips" id="globalTips"></div>
+    </div>
+  </div>
+
+  <script>
+    const optionsConfig = {
+      taste: [
+        { id: "light", label: "清淡少油" },
+        { id: "heavy", label: "重口下饭" },
+        { id: "sour_spicy", label: "酸辣开胃" },
+        { id: "curry", label: "咖喱浓香" },
+        { id: "fresh", label: "清爽鲜香" }
+      ],
+      staple: [
+        { id: "rice", label: "米饭类" },
+        { id: "noodle", label: "面类" },
+        { id: "porridge", label: "粥类" },
+        { id: "pastry", label: "饼类" },
+        { id: "any", label: "都可以" }
+      ],
+      protein: [
+        { id: "shrimp", label: "虾类" },
+        { id: "beef_lamb", label: "牛/羊肉" },
+        { id: "fish", label: "鱼类" },
+        { id: "egg_tofu", label: "鸡蛋/豆腐" },
+        { id: "pork_chicken", label: "猪/鸡肉" },
+        { id: "any", label: "都可以" }
+      ],
+      time: [
+        { id: "10", label: "10分钟" },
+        { id: "20", label: "20分钟内" },
+        { id: "30", label: "30分钟内" },
+        { id: "any", label: "时间都行" }
+      ],
+      spicy: [
+        { id: "none", label: "不辣" },
+        { id: "mild", label: "微辣" },
+        { id: "mid", label: "中辣" },
+        { id: "hot", label: "重辣" }
+      ]
+    };
+
+    const STORAGE_CUSTOM_DISHES = "meal_planner_custom_dishes_v1";
+    const STORAGE_WEEK_HISTORY = "meal_planner_week_history_v1";
+
+    const defaultDishes = [
+      {
+        id: "d1",
+        name: "虾仁蒸蛋",
+        protein: "shrimp",
+        staple: "any",
+        taste: "light",
+        spicy: "none",
+        time: 20,
+        veggie: "西兰花",
+        garnish: "葱花、姜丝、生抽、香油",
+        method: "鸡蛋打散加温水，铺虾仁蒸10-12分钟，淋少许生抽和香油。"
+      },
+      {
+        id: "d2",
+        name: "咖喱蛋包饭",
+        protein: "egg_tofu",
+        staple: "rice",
+        taste: "curry",
+        spicy: "mild",
+        time: 25,
+        veggie: "胡萝卜+洋葱",
+        garnish: "洋葱末、黑胡椒、咖喱块",
+        method: "先炒咖喱蔬菜饭，再摊蛋皮包饭，10分钟可完成简版。"
+      },
+      {
+        id: "d3",
+        name: "海鲜粥",
+        protein: "shrimp",
+        staple: "porridge",
+        taste: "fresh",
+        spicy: "none",
+        time: 30,
+        veggie: "香菇+青菜",
+        garnish: "姜丝、白胡椒、葱花",
+        method: "米先煮开花，下海鲜和蔬菜再煮8-10分钟。"
+      },
+      {
+        id: "d4",
+        name: "泡菜牛肉面",
+        protein: "beef_lamb",
+        staple: "noodle",
+        taste: "sour_spicy",
+        spicy: "mid",
+        time: 20,
+        veggie: "泡菜+豆芽",
+        garnish: "蒜末、葱花、韩式辣酱",
+        method: "牛肉快炒至变色，加泡菜汤底煮面，最后放豆芽。"
+      },
+      {
+        id: "d5",
+        name: "酸辣拌茄子+虾仁面",
+        protein: "shrimp",
+        staple: "noodle",
+        taste: "sour_spicy",
+        spicy: "mild",
+        time: 25,
+        veggie: "茄子+青椒",
+        garnish: "蒜末、葱花、陈醋、小米辣",
+        method: "先煮面和虾仁，茄子蒸熟后拌酸辣汁，组合成一餐。"
+      },
+      {
+        id: "d6",
+        name: "西红柿炒鸡蛋盖饭",
+        protein: "egg_tofu",
+        staple: "rice",
+        taste: "light",
+        spicy: "none",
+        time: 15,
+        veggie: "番茄",
+        garnish: "葱花、番茄酱少许",
+        method: "鸡蛋炒散盛出，番茄炒软后回锅，淋在米饭上。"
+      },
+      {
+        id: "d7",
+        name: "麻婆豆腐",
+        protein: "egg_tofu",
+        staple: "rice",
+        taste: "heavy",
+        spicy: "mid",
+        time: 20,
+        veggie: "蒜苗",
+        garnish: "蒜末、姜末、花椒粉、豆瓣酱",
+        method: "豆腐焯水后入锅，酱汁小火收浓，撒蒜苗。"
+      },
+      {
+        id: "d8",
+        name: "清蒸鲈鱼",
+        protein: "fish",
+        staple: "rice",
+        taste: "fresh",
+        spicy: "none",
+        time: 25,
+        veggie: "清炒时蔬",
+        garnish: "姜丝、葱段、蒸鱼豉油",
+        method: "鱼身划刀铺姜葱蒸8-10分钟，淋热油和豉油。"
+      },
+      {
+        id: "d9",
+        name: "番茄牛肉饭",
+        protein: "beef_lamb",
+        staple: "rice",
+        taste: "fresh",
+        spicy: "none",
+        time: 30,
+        veggie: "番茄+洋葱",
+        garnish: "姜片、黑胡椒、蒜末",
+        method: "牛肉先炒香，再与番茄炖至浓稠浇饭。"
+      },
+      {
+        id: "d10",
+        name: "豆芽牛肉豆腐",
+        protein: "beef_lamb",
+        staple: "any",
+        taste: "heavy",
+        spicy: "mild",
+        time: 20,
+        veggie: "豆芽",
+        garnish: "蒜末、葱花、生抽、蚝油",
+        method: "牛肉滑炒后放豆腐和豆芽，大火快炒保脆。"
+      },
+      {
+        id: "d11",
+        name: "豆腐娃娃菜鸡蛋汤",
+        protein: "egg_tofu",
+        staple: "any",
+        taste: "light",
+        spicy: "none",
+        time: 15,
+        veggie: "娃娃菜",
+        garnish: "姜丝、白胡椒、葱花",
+        method: "娃娃菜煮软后下豆腐和蛋液，调味即可。"
+      },
+      {
+        id: "d12",
+        name: "虾仁杏鲍菇拌乌冬",
+        protein: "shrimp",
+        staple: "noodle",
+        taste: "fresh",
+        spicy: "mild",
+        time: 20,
+        veggie: "杏鲍菇+青椒",
+        garnish: "蒜末、黑胡椒、生抽、少许辣椒碎",
+        method: "虾仁和杏鲍菇先煎香，再拌熟乌冬。"
+      }
+    ];
+
+    const seasonalFruits = {
+      1: ["橙子", "苹果", "柚子"],
+      2: ["草莓", "橙子", "苹果"],
+      3: ["草莓", "菠萝", "沃柑"],
+      4: ["草莓", "枇杷", "菠萝"],
+      5: ["樱桃", "枇杷", "蓝莓"],
+      6: ["荔枝", "油桃", "杏子"],
+      7: ["西瓜", "桃子", "李子"],
+      8: ["葡萄", "蜜桃", "甜瓜"],
+      9: ["石榴", "梨", "无花果"],
+      10: ["柿子", "苹果", "葡萄"],
+      11: ["橙子", "柚子", "冬枣"],
+      12: ["橘子", "苹果", "猕猴桃"]
+    };
+
+    const selections = {
+      taste: "light",
+      staple: "rice",
+      protein: "any",
+      time: "30",
+      spicy: "mild"
+    };
+
+    const labelMap = {
+      protein: Object.fromEntries(optionsConfig.protein.map((x) => [x.id, x.label])),
+      staple: Object.fromEntries(optionsConfig.staple.map((x) => [x.id, x.label])),
+      taste: Object.fromEntries(optionsConfig.taste.map((x) => [x.id, x.label])),
+      spicy: Object.fromEntries(optionsConfig.spicy.map((x) => [x.id, x.label]))
+    };
+
+    let customDishes = loadCustomDishes();
+
+    function currentDishes() {
+      return [...defaultDishes, ...customDishes];
+    }
+
+    function loadCustomDishes() {
+      try {
+        const raw = localStorage.getItem(STORAGE_CUSTOM_DISHES);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveCustomDishes() {
+      localStorage.setItem(STORAGE_CUSTOM_DISHES, JSON.stringify(customDishes));
+    }
+
+    function getCurrentWeekId() {
+      const now = new Date();
+      const date = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+      const dayNum = date.getUTCDay() || 7;
+      date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+      return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+    }
+
+    function loadWeekHistory() {
+      const defaultValue = { weekId: getCurrentWeekId(), usedDishNames: [] };
+      try {
+        const raw = localStorage.getItem(STORAGE_WEEK_HISTORY);
+        if (!raw) return defaultValue;
+        const parsed = JSON.parse(raw);
+        if (parsed.weekId !== getCurrentWeekId()) return defaultValue;
+        if (!Array.isArray(parsed.usedDishNames)) return defaultValue;
+        return parsed;
+      } catch (e) {
+        return defaultValue;
+      }
+    }
+
+    function saveWeekHistory(history) {
+      localStorage.setItem(STORAGE_WEEK_HISTORY, JSON.stringify(history));
+    }
+
+    function renderOptions(fieldId, containerId) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      optionsConfig[fieldId].forEach((opt) => {
+        const chip = document.createElement("label");
+        chip.className = "chip";
+        chip.dataset.value = opt.id;
+        chip.innerHTML = `<input type="radio" name="${fieldId}" value="${opt.id}"><span>${opt.label}</span>`;
+        chip.addEventListener("click", () => {
+          selections[fieldId] = opt.id;
+          [...container.children].forEach((c) => c.classList.remove("active"));
+          chip.classList.add("active");
+        });
+        container.appendChild(chip);
+      });
+      const initial = [...container.children].find((node) => node.dataset.value === selections[fieldId]);
+      if (initial) {
+        initial.classList.add("active");
+      }
+    }
+
+    function spicyRank(level) {
+      const map = { none: 0, mild: 1, mid: 2, hot: 3 };
+      return map[level] ?? 1;
+    }
+
+    function inTimeRange(dishTime, chosen) {
+      if (chosen === "any") return true;
+      return dishTime <= Number(chosen);
+    }
+
+    function filterDishes() {
+      return currentDishes().filter((dish) => {
+        const proteinOk = selections.protein === "any" || dish.protein === selections.protein;
+        const stapleOk = selections.staple === "any" || dish.staple === selections.staple || dish.staple === "any";
+        const tasteOk = dish.taste === selections.taste || selections.taste === "fresh";
+        const timeOk = inTimeRange(dish.time, selections.time);
+        const spicyOk = spicyRank(dish.spicy) <= spicyRank(selections.spicy);
+        return proteinOk && stapleOk && tasteOk && timeOk && spicyOk;
+      });
+    }
+
+    function scoreDish(dish) {
+      let score = 0;
+      if (dish.protein === selections.protein) score += 3;
+      if (dish.staple === selections.staple) score += 2;
+      if (dish.taste === selections.taste) score += 2;
+      if (dish.time <= Number(selections.time || 30)) score += 1;
+      return score;
+    }
+
+    function getSeasonalFruit() {
+      const month = new Date().getMonth() + 1;
+      const fruits = seasonalFruits[month] || ["苹果", "香蕉", "橙子"];
+      return fruits[Math.floor(Math.random() * fruits.length)];
+    }
+
+    function buildMenuCards(avoidWeeklyRepeat) {
+      let candidates = filterDishes();
+      let fallbackUsed = false;
+      if (avoidWeeklyRepeat) {
+        const history = loadWeekHistory();
+        const usedSet = new Set(history.usedDishNames);
+        const noRepeat = candidates.filter((dish) => !usedSet.has(dish.name));
+        if (noRepeat.length >= 3) {
+          candidates = noRepeat;
+        } else {
+          fallbackUsed = true;
+        }
+      }
+      if (candidates.length < 3) {
+        candidates = [...currentDishes()];
+        fallbackUsed = true;
+      }
+      const ranked = candidates
+        .map((dish) => ({ dish, score: scoreDish(dish) }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map((entry, idx) => {
+          const fruit = getSeasonalFruit();
+          return { ...entry.dish, option: String.fromCharCode(65 + idx), fruit };
+        });
+      return { menus: ranked, fallbackUsed };
+    }
+
+    function renderResults(avoidWeeklyRepeat) {
+      const list = document.getElementById("resultList");
+      const resultCard = document.getElementById("resultCard");
+      const globalTips = document.getElementById("globalTips");
+      const { menus, fallbackUsed } = buildMenuCards(avoidWeeklyRepeat);
+
+      list.innerHTML = "";
+      menus.forEach((menu) => {
+        const node = document.createElement("div");
+        node.className = "menu-item";
+        node.innerHTML = `
+          <h3>选项 ${menu.option}：${menu.name}</h3>
+          <p><strong>蛋白质：</strong>${labelMap.protein[menu.protein] || menu.protein}</p>
+          <p><strong>蔬菜搭配：</strong>${menu.veggie}</p>
+          <p><strong>当季水果：</strong>${menu.fruit}</p>
+          <p><strong>配菜提醒：</strong>${menu.garnish}</p>
+          <p><strong>简做法：</strong>${menu.method}</p>
+        `;
+        list.appendChild(node);
+      });
+
+      if (avoidWeeklyRepeat && menus.length) {
+        const history = loadWeekHistory();
+        const used = new Set(history.usedDishNames);
+        menus.forEach((m) => used.add(m.name));
+        saveWeekHistory({ weekId: getCurrentWeekId(), usedDishNames: [...used] });
+      }
+
+      globalTips.textContent = fallbackUsed
+        ? "提醒：本次存在条件较严或本周已吃较多，已自动放宽部分限制来凑够3个选项。"
+        : "提醒：每套都按“蛋白质 + 蔬菜 + 当季水果”生成。若想更清淡，可减少油盐和辣椒；若想更重口，可加蒜末、辣椒、黑胡椒。";
+      resultCard.classList.remove("hidden");
+      resultCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function fillSelectByConfig(selectId, fieldId) {
+      const select = document.getElementById(selectId);
+      select.innerHTML = "";
+      optionsConfig[fieldId].forEach((opt) => {
+        if (opt.id === "any") return;
+        const node = document.createElement("option");
+        node.value = opt.id;
+        node.textContent = opt.label;
+        select.appendChild(node);
+      });
+    }
+
+    function addCustomDish() {
+      const name = document.getElementById("dishName").value.trim();
+      const veggie = document.getElementById("dishVeggie").value.trim();
+      const garnish = document.getElementById("dishGarnish").value.trim();
+      const method = document.getElementById("dishMethod").value.trim();
+      const protein = document.getElementById("dishProtein").value;
+      const staple = document.getElementById("dishStaple").value;
+      const taste = document.getElementById("dishTaste").value;
+      const spicy = document.getElementById("dishSpicy").value;
+      const time = Number(document.getElementById("dishTime").value || 20);
+
+      if (!name || !veggie || !garnish || !method || !time) {
+        alert("请把菜名、蔬菜搭配、配菜提醒、简做法和时长填写完整。");
+        return;
+      }
+      const item = {
+        id: `c${Date.now()}`,
+        name,
+        protein,
+        staple,
+        taste,
+        spicy,
+        time,
+        veggie,
+        garnish,
+        method
+      };
+      customDishes.unshift(item);
+      saveCustomDishes();
+      renderCustomList();
+      document.getElementById("dishName").value = "";
+      document.getElementById("dishVeggie").value = "";
+      document.getElementById("dishGarnish").value = "";
+      document.getElementById("dishMethod").value = "";
+      document.getElementById("dishTime").value = "20";
+    }
+
+    function deleteCustomDish(id) {
+      customDishes = customDishes.filter((x) => x.id !== id);
+      saveCustomDishes();
+      renderCustomList();
+    }
+
+    function renderCustomList() {
+      const box = document.getElementById("customList");
+      if (!customDishes.length) {
+        box.innerHTML = "<div class='small'>你还没有新增菜谱，先添加一条试试。</div>";
+        return;
+      }
+      box.innerHTML = "<div class='small'>我的新增菜谱：</div>";
+      customDishes.forEach((d) => {
+        const row = document.createElement("div");
+        row.className = "custom-item";
+        row.innerHTML = `<span>${d.name}（${labelMap.protein[d.protein] || d.protein} / ${d.time}分钟）</span>`;
+        const btn = document.createElement("button");
+        btn.className = "btn-secondary";
+        btn.textContent = "删除";
+        btn.addEventListener("click", () => deleteCustomDish(d.id));
+        row.appendChild(btn);
+        box.appendChild(row);
+      });
+    }
+
+    function resetSelections() {
+      selections.taste = "light";
+      selections.staple = "rice";
+      selections.protein = "any";
+      selections.time = "30";
+      selections.spicy = "mild";
+      renderAllOptions();
+      document.getElementById("resultCard").classList.add("hidden");
+      document.getElementById("resultList").innerHTML = "";
+    }
+
+    function renderAllOptions() {
+      renderOptions("taste", "tasteOptions");
+      renderOptions("staple", "stapleOptions");
+      renderOptions("protein", "proteinOptions");
+      renderOptions("time", "timeOptions");
+      renderOptions("spicy", "spicyOptions");
+      fillSelectByConfig("dishProtein", "protein");
+      fillSelectByConfig("dishStaple", "staple");
+      fillSelectByConfig("dishTaste", "taste");
+      fillSelectByConfig("dishSpicy", "spicy");
+      renderCustomList();
+    }
+
+    renderAllOptions();
+    document.getElementById("generateBtn").addEventListener("click", () => renderResults(false));
+    document.getElementById("generateWeekBtn").addEventListener("click", () => renderResults(true));
+    document.getElementById("resetBtn").addEventListener("click", resetSelections);
+    document.getElementById("addDishBtn").addEventListener("click", addCustomDish);
+  </script>
+</body>
+</html>
