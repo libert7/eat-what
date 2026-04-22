@@ -262,28 +262,23 @@
 
     <div class="card">
       <div class="grid">
-        <div class="field" data-field="taste">
-          <label class="title">1. 口味倾向</label>
-          <div class="options" id="tasteOptions"></div>
-        </div>
-
         <div class="field" data-field="staple">
-          <label class="title">2. 主食偏好</label>
+          <label class="title">1. 主食偏好</label>
           <div class="options" id="stapleOptions"></div>
         </div>
 
         <div class="field" data-field="protein">
-          <label class="title">3. 蛋白质偏好</label>
+          <label class="title">2. 蛋白质偏好</label>
           <div class="options" id="proteinOptions"></div>
         </div>
 
         <div class="field" data-field="time">
-          <label class="title">4. 做饭时长</label>
+          <label class="title">3. 做饭时长</label>
           <div class="options" id="timeOptions"></div>
         </div>
 
         <div class="field" data-field="spicy">
-          <label class="title">5. 辣度</label>
+          <label class="title">4. 辣度</label>
           <div class="options" id="spicyOptions"></div>
         </div>
       </div>
@@ -311,10 +306,10 @@
     </div>
 
     <div class="card hidden" id="resultCard">
-      <h2 class="result-title">今日推荐（3选1）</h2>
+      <h2 class="result-title">今日推荐（5选1）</h2>
       <div id="resultList"></div>
       <div class="actions">
-        <button class="btn-secondary" id="continueBtn">继续生成</button>
+        <button class="btn-secondary" id="continueBtn">再来 5 个</button>
       </div>
       <div class="tips" id="globalTips"></div>
     </div>
@@ -322,13 +317,6 @@
 
   <script>
     const optionsConfig = {
-      taste: [
-        { id: "light", label: "清淡少油" },
-        { id: "heavy", label: "重口下饭" },
-        { id: "sour_spicy", label: "酸辣开胃" },
-        { id: "curry", label: "咖喱浓香" },
-        { id: "fresh", label: "清爽鲜香" }
-      ],
       staple: [
         { id: "rice", label: "米饭类" },
         { id: "noodle", label: "面类" },
@@ -524,7 +512,6 @@
     };
 
     const selections = {
-      taste: "light",
       staple: "rice",
       protein: "any",
       time: "30",
@@ -534,7 +521,6 @@
     const labelMap = {
       protein: Object.fromEntries(optionsConfig.protein.map((x) => [x.id, x.label])),
       staple: Object.fromEntries(optionsConfig.staple.map((x) => [x.id, x.label])),
-      taste: Object.fromEntries(optionsConfig.taste.map((x) => [x.id, x.label])),
       spicy: Object.fromEntries(optionsConfig.spicy.map((x) => [x.id, x.label]))
     };
 
@@ -623,10 +609,9 @@
       return currentDishes().filter((dish) => {
         const proteinOk = selections.protein === "any" || dish.protein === selections.protein;
         const stapleOk = selections.staple === "any" || dish.staple === selections.staple || dish.staple === "any";
-        const tasteOk = dish.taste === selections.taste || selections.taste === "fresh";
         const timeOk = inTimeRange(dish.time, selections.time);
         const spicyOk = spicyRank(dish.spicy) <= spicyRank(selections.spicy);
-        return proteinOk && stapleOk && tasteOk && timeOk && spicyOk;
+        return proteinOk && stapleOk && timeOk && spicyOk;
       });
     }
 
@@ -634,7 +619,6 @@
       let score = 0;
       if (dish.protein === selections.protein) score += 3;
       if (dish.staple === selections.staple) score += 2;
-      if (dish.taste === selections.taste) score += 2;
       if (dish.time <= Number(selections.time || 30)) score += 1;
       return score;
     }
@@ -652,7 +636,7 @@
         const history = loadWeekHistory();
         const usedSet = new Set(history.usedDishNames);
         const noRepeat = candidates.filter((dish) => !usedSet.has(dish.name));
-        if (noRepeat.length >= 3) {
+        if (noRepeat.length >= 5) {
           candidates = noRepeat;
         } else {
           fallbackUsed = true;
@@ -661,21 +645,34 @@
       if (excludeNames.length) {
         const excludeSet = new Set(excludeNames);
         const notShownYet = candidates.filter((dish) => !excludeSet.has(dish.name));
-        if (notShownYet.length >= 3) {
+        if (notShownYet.length >= 5) {
           candidates = notShownYet;
         } else {
           fallbackUsed = true;
           if (notShownYet.length) candidates = notShownYet;
         }
       }
-      if (candidates.length < 3) {
-        candidates = [...currentDishes()];
+      if (candidates.length < 5) {
+        let relaxed = currentDishes().filter((dish) => {
+          const spicyOk = spicyRank(dish.spicy) <= spicyRank(selections.spicy);
+          const timeOk = inTimeRange(dish.time, selections.time);
+          return spicyOk && timeOk;
+        });
+        if (excludeNames.length) {
+          const excludeSet = new Set(excludeNames);
+          relaxed = relaxed.filter((dish) => !excludeSet.has(dish.name));
+        }
+        if (relaxed.length >= 5) {
+          candidates = relaxed;
+        } else {
+          candidates = [...currentDishes()];
+        }
         fallbackUsed = true;
       }
       const ranked = candidates
         .map((dish) => ({ dish, score: scoreDish(dish) }))
         .sort((a, b) => b.score - a.score)
-        .slice(0, 3)
+        .slice(0, 5)
         .map((entry, idx) => {
           const fruit = getSeasonalFruit();
           return { ...entry.dish, option: String.fromCharCode(65 + idx), fruit };
@@ -717,7 +714,7 @@
       }
 
       globalTips.textContent = fallbackUsed
-        ? "提醒：本次存在条件较严、可选菜较少或已接近不重复上限，已自动放宽部分限制来凑够3个选项。"
+        ? "提醒：本次存在条件较严、可选菜较少或已接近不重复上限，已自动放宽部分限制来凑够5个选项。"
         : "提醒：每套都按“蛋白质 + 蔬菜 + 当季水果”生成。若想更清淡，可减少油盐和辣椒；若想更重口，可加蒜末、辣椒、黑胡椒。";
       resultCard.classList.remove("hidden");
       resultCard.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -875,7 +872,6 @@
     }
 
     function resetSelections() {
-      selections.taste = "light";
       selections.staple = "rice";
       selections.protein = "any";
       selections.time = "30";
@@ -887,14 +883,12 @@
     }
 
     function renderAllOptions() {
-      renderOptions("taste", "tasteOptions");
       renderOptions("staple", "stapleOptions");
       renderOptions("protein", "proteinOptions");
       renderOptions("time", "timeOptions");
       renderOptions("spicy", "spicyOptions");
       fillSelectByConfig("dishProtein", "protein");
       fillSelectByConfig("dishStaple", "staple");
-      fillSelectByConfig("dishTaste", "taste");
       fillSelectByConfig("dishSpicy", "spicy");
       renderCustomList();
     }
