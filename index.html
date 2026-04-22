@@ -115,6 +115,24 @@
       margin-top: 8px;
     }
 
+    .inline-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fcfaf6;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .inline-check input {
+      width: auto;
+      margin: 0;
+      accent-color: var(--primary);
+    }
+
     button {
       border: 1px solid transparent;
       border-radius: 6px;
@@ -272,7 +290,10 @@
 
       <div class="actions">
         <button class="btn-primary" id="generateBtn">生成今日菜单</button>
-        <button class="btn-primary" id="generateWeekBtn">本周不重复推荐</button>
+        <label class="inline-check">
+          <input type="checkbox" id="avoidWeekRepeatToggle">
+          <span>本周不重复推荐</span>
+        </label>
         <button class="btn-secondary" id="resetBtn">重置选择</button>
       </div>
     </div>
@@ -280,30 +301,21 @@
     <div class="card">
       <h2 class="result-title">维护你的菜谱（页面内直接添加）</h2>
       <div class="manager-grid">
-        <input id="dishName" placeholder="菜名（例：蒜香虾仁意面）">
-        <select id="dishProtein"></select>
-        <select id="dishStaple"></select>
-        <select id="dishTaste"></select>
-        <select id="dishSpicy"></select>
-        <input id="dishTime" type="number" min="5" max="120" value="20" placeholder="做饭时长（分钟）">
-      </div>
-      <div class="manager-grid" style="margin-top:10px;">
-        <input id="dishVeggie" placeholder="蔬菜搭配（例：西兰花+胡萝卜）">
-        <input id="dishGarnish" placeholder="配菜提醒（例：葱姜蒜、生抽）">
-      </div>
-      <div style="margin-top:10px;">
-        <textarea id="dishMethod" placeholder="简做法（例：虾仁快炒后和面拌匀，最后放蒜末）"></textarea>
+        <input id="dishName" placeholder="只输入菜名（例：蒜香虾仁意面）">
       </div>
       <div class="actions">
         <button class="btn-primary" id="addDishBtn">添加到我的菜谱</button>
       </div>
-      <p class="small">新增菜谱会自动保存到本地浏览器，下次打开还能用。</p>
+      <p class="small">现在只需填菜名，系统会自动生成蔬菜搭配、配菜提醒和简做法并保存到本地浏览器。</p>
       <div class="custom-list" id="customList"></div>
     </div>
 
     <div class="card hidden" id="resultCard">
       <h2 class="result-title">今日推荐（3选1）</h2>
       <div id="resultList"></div>
+      <div class="actions">
+        <button class="btn-secondary" id="continueBtn">继续生成</button>
+      </div>
       <div class="tips" id="globalTips"></div>
     </div>
   </div>
@@ -527,6 +539,7 @@
     };
 
     let customDishes = loadCustomDishes();
+    let lastRenderedDishNames = [];
 
     function currentDishes() {
       return [...defaultDishes, ...customDishes];
@@ -632,7 +645,7 @@
       return fruits[Math.floor(Math.random() * fruits.length)];
     }
 
-    function buildMenuCards(avoidWeeklyRepeat) {
+    function buildMenuCards(avoidWeeklyRepeat, excludeNames = []) {
       let candidates = filterDishes();
       let fallbackUsed = false;
       if (avoidWeeklyRepeat) {
@@ -643,6 +656,16 @@
           candidates = noRepeat;
         } else {
           fallbackUsed = true;
+        }
+      }
+      if (excludeNames.length) {
+        const excludeSet = new Set(excludeNames);
+        const notShownYet = candidates.filter((dish) => !excludeSet.has(dish.name));
+        if (notShownYet.length >= 3) {
+          candidates = notShownYet;
+        } else {
+          fallbackUsed = true;
+          if (notShownYet.length) candidates = notShownYet;
         }
       }
       if (candidates.length < 3) {
@@ -660,11 +683,15 @@
       return { menus: ranked, fallbackUsed };
     }
 
-    function renderResults(avoidWeeklyRepeat) {
+    function renderResults({ continueMode = false } = {}) {
       const list = document.getElementById("resultList");
       const resultCard = document.getElementById("resultCard");
       const globalTips = document.getElementById("globalTips");
-      const { menus, fallbackUsed } = buildMenuCards(avoidWeeklyRepeat);
+      const avoidWeeklyRepeat = document.getElementById("avoidWeekRepeatToggle").checked;
+      const { menus, fallbackUsed } = buildMenuCards(
+        avoidWeeklyRepeat,
+        continueMode ? lastRenderedDishNames : []
+      );
 
       list.innerHTML = "";
       menus.forEach((menu) => {
@@ -680,6 +707,7 @@
         `;
         list.appendChild(node);
       });
+      lastRenderedDishNames = menus.map((m) => m.name);
 
       if (avoidWeeklyRepeat && menus.length) {
         const history = loadWeekHistory();
@@ -689,7 +717,7 @@
       }
 
       globalTips.textContent = fallbackUsed
-        ? "提醒：本次存在条件较严或本周已吃较多，已自动放宽部分限制来凑够3个选项。"
+        ? "提醒：本次存在条件较严、可选菜较少或已接近不重复上限，已自动放宽部分限制来凑够3个选项。"
         : "提醒：每套都按“蛋白质 + 蔬菜 + 当季水果”生成。若想更清淡，可减少油盐和辣椒；若想更重口，可加蒜末、辣椒、黑胡椒。";
       resultCard.classList.remove("hidden");
       resultCard.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -697,6 +725,7 @@
 
     function fillSelectByConfig(selectId, fieldId) {
       const select = document.getElementById(selectId);
+      if (!select) return;
       select.innerHTML = "";
       optionsConfig[fieldId].forEach((opt) => {
         if (opt.id === "any") return;
@@ -707,41 +736,116 @@
       });
     }
 
+    function pickRandom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function normalizeDishName(name) {
+      return String(name || "")
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/[()（）[\]【】\-_,，。.!！？:：;；'"`~]/g, "");
+    }
+
+    function isDuplicateDishName(name) {
+      const target = normalizeDishName(name);
+      if (!target) return false;
+      return currentDishes().some((dish) => normalizeDishName(dish.name) === target);
+    }
+
+    function detectProteinByName(name) {
+      const text = name.toLowerCase();
+      if (/(虾|虾仁|虾滑|shrim|prawn)/.test(text)) return "shrimp";
+      if (/(牛|羊|肥牛|牛腩|beef|lamb)/.test(text)) return "beef_lamb";
+      if (/(鱼|鲈|鳕|三文|鲫|fish|salmon)/.test(text)) return "fish";
+      if (/(蛋|豆腐|豆皮|豆干|tofu|egg)/.test(text)) return "egg_tofu";
+      if (/(猪|鸡|排骨|里脊|鸡腿|鸡胸|pork|chicken)/.test(text)) return "pork_chicken";
+      return pickRandom(["pork_chicken", "egg_tofu", "shrimp"]);
+    }
+
+    function detectStapleByName(name) {
+      const text = name.toLowerCase();
+      if (/(面|粉|乌冬|意面|米线|noodle|pasta)/.test(text)) return "noodle";
+      if (/(粥|羹|porridge)/.test(text)) return "porridge";
+      if (/(饼|卷|馍|三明治|pastry|pancake)/.test(text)) return "pastry";
+      if (/(饭|盖浇|焖饭|炒饭|rice)/.test(text)) return "rice";
+      return "any";
+    }
+
+    function detectTasteByName(name) {
+      const text = name.toLowerCase();
+      if (/(咖喱|curry)/.test(text)) return "curry";
+      if (/(酸|泡菜|麻辣|辣子|水煮|香辣|sour|spicy)/.test(text)) return "sour_spicy";
+      if (/(蒸|清炒|白灼|汤|原味|鲜|fresh)/.test(text)) return "fresh";
+      if (/(红烧|干锅|酱爆|回锅|heavy)/.test(text)) return "heavy";
+      return "light";
+    }
+
+    function detectSpicyByName(name, taste) {
+      const text = name.toLowerCase();
+      if (/(特辣|爆辣|重辣)/.test(text)) return "hot";
+      if (/(麻辣|水煮|辣子|剁椒)/.test(text)) return "mid";
+      if (/(微辣|香辣|泡菜|辣)/.test(text)) return "mild";
+      if (taste === "sour_spicy") return "mild";
+      return "none";
+    }
+
+    function estimateTime(name, protein, staple) {
+      const text = name.toLowerCase();
+      if (/(炖|煲|焖|卤|慢煮)/.test(text)) return 35;
+      if (/(蒸|汤|粥)/.test(text)) return 25;
+      if (/(快手|凉拌|沙拉)/.test(text)) return 12;
+      if (staple === "porridge") return 30;
+      if (protein === "fish" || protein === "beef_lamb") return 25;
+      return 20;
+    }
+
+    function generateDishMeta(name) {
+      const protein = detectProteinByName(name);
+      const staple = detectStapleByName(name);
+      const taste = detectTasteByName(name);
+      const spicy = detectSpicyByName(name, taste);
+      const time = estimateTime(name, protein, staple);
+      const veggie = pickRandom(["西兰花+胡萝卜", "青椒+洋葱", "香菇+青菜", "番茄+生菜", "娃娃菜+木耳"]);
+      const garnish = pickRandom([
+        "葱姜蒜、生抽、少许蚝油",
+        "蒜末、黑胡椒、盐",
+        "姜丝、葱花、白胡椒",
+        "蒜末、陈醋、生抽",
+        "葱花、香油、少许糖"
+      ]);
+      const method = `先处理食材并调好基础味汁；${name}主料下锅翻炒或焖煮至熟，加入${veggie}快速收汁，最后按口味补盐即可。`;
+      return { protein, staple, taste, spicy, time, veggie, garnish, method };
+    }
+
     function addCustomDish() {
       const name = document.getElementById("dishName").value.trim();
-      const veggie = document.getElementById("dishVeggie").value.trim();
-      const garnish = document.getElementById("dishGarnish").value.trim();
-      const method = document.getElementById("dishMethod").value.trim();
-      const protein = document.getElementById("dishProtein").value;
-      const staple = document.getElementById("dishStaple").value;
-      const taste = document.getElementById("dishTaste").value;
-      const spicy = document.getElementById("dishSpicy").value;
-      const time = Number(document.getElementById("dishTime").value || 20);
 
-      if (!name || !veggie || !garnish || !method || !time) {
-        alert("请把菜名、蔬菜搭配、配菜提醒、简做法和时长填写完整。");
+      if (!name) {
+        alert("请先输入菜名。");
         return;
       }
+      if (isDuplicateDishName(name)) {
+        alert("这个菜名已经存在于菜谱中，请换一个名称或先删除原菜谱。");
+        return;
+      }
+      const generated = generateDishMeta(name);
       const item = {
         id: `c${Date.now()}`,
         name,
-        protein,
-        staple,
-        taste,
-        spicy,
-        time,
-        veggie,
-        garnish,
-        method
+        protein: generated.protein,
+        staple: generated.staple,
+        taste: generated.taste,
+        spicy: generated.spicy,
+        time: generated.time,
+        veggie: generated.veggie,
+        garnish: generated.garnish,
+        method: generated.method
       };
       customDishes.unshift(item);
       saveCustomDishes();
       renderCustomList();
       document.getElementById("dishName").value = "";
-      document.getElementById("dishVeggie").value = "";
-      document.getElementById("dishGarnish").value = "";
-      document.getElementById("dishMethod").value = "";
-      document.getElementById("dishTime").value = "20";
     }
 
     function deleteCustomDish(id) {
@@ -776,6 +880,7 @@
       selections.protein = "any";
       selections.time = "30";
       selections.spicy = "mild";
+      lastRenderedDishNames = [];
       renderAllOptions();
       document.getElementById("resultCard").classList.add("hidden");
       document.getElementById("resultList").innerHTML = "";
@@ -795,8 +900,8 @@
     }
 
     renderAllOptions();
-    document.getElementById("generateBtn").addEventListener("click", () => renderResults(false));
-    document.getElementById("generateWeekBtn").addEventListener("click", () => renderResults(true));
+    document.getElementById("generateBtn").addEventListener("click", () => renderResults());
+    document.getElementById("continueBtn").addEventListener("click", () => renderResults({ continueMode: true }));
     document.getElementById("resetBtn").addEventListener("click", resetSelections);
     document.getElementById("addDishBtn").addEventListener("click", addCustomDish);
   </script>
